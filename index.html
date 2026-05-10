@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本語能力テスト</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:#F5F4F0;color:#1a1a1a;min-height:100vh}
+.screen{display:none;padding:1.5rem 1rem;max-width:640px;margin:0 auto}
+.screen.active{display:block}
+.header{text-align:center;margin-bottom:2rem;padding-top:2rem}
+.header h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.header p{font-size:14px;color:#666}
+
+/* レベル選択 */
+.level-cards{display:flex;flex-direction:column;gap:12px;margin-top:1rem}
+.level-card{background:white;border-radius:16px;padding:1.5rem;cursor:pointer;border:1.5px solid #e0e0e0;transition:all 0.2s;display:flex;align-items:center;gap:1rem}
+.level-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.level-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+.n5 .level-icon{background:#E6F1FB;color:#185FA5}
+.n4 .level-icon{background:#EAF3DE;color:#0F6E56}
+.n3 .level-icon{background:#FAEEDA;color:#854F0B}
+.level-info h2{font-size:18px;font-weight:500;margin-bottom:2px}
+.level-info p{font-size:13px;color:#888}
+.level-arrow{margin-left:auto;color:#ccc;font-size:20px}
+
+/* テスト画面共通 */
+.section-badge{display:inline-block;font-size:12px;padding:3px 12px;border-radius:20px;margin-bottom:1rem;font-weight:500}
+.badge-n5{background:#E6F1FB;color:#185FA5}
+.badge-n4{background:#EAF3DE;color:#0F6E56}
+.badge-n3{background:#FAEEDA;color:#854F0B}
+
+.progress-bar{height:4px;background:#e0e0e0;border-radius:2px;margin-bottom:1.5rem}
+.progress-fill-n5{height:100%;background:#378ADD;border-radius:2px;transition:width 0.3s}
+.progress-fill-n4{height:100%;background:#1D9E75;border-radius:2px;transition:width 0.3s}
+.progress-fill-n3{height:100%;background:#BA7517;border-radius:2px;transition:width 0.3s}
+
+.question-card{background:white;border-radius:16px;padding:1.25rem;margin-bottom:1rem;border:1px solid #eee}
+.q-num{font-size:12px;color:#999;margin-bottom:8px}
+.q-text{font-size:16px;line-height:2;margin-bottom:1rem}
+.options{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid #e0e0e0;border-radius:10px;cursor:pointer;font-size:15px;transition:all 0.15s;background:white;line-height:1.9}
+.opt:hover{background:#f8f8f8}
+.opt-circle{width:18px;height:18px;border-radius:50%;border:1.5px solid #ccc;flex-shrink:0;transition:all 0.15s}
+.selected-n5{border-color:#378ADD!important;background:#E6F1FB!important;color:#0C447C!important}
+.selected-n5 .opt-circle{border-color:#378ADD!important;background:#378ADD!important}
+.selected-n4{border-color:#1D9E75!important;background:#E1F5EE!important;color:#085041!important}
+.selected-n4 .opt-circle{border-color:#1D9E75!important;background:#1D9E75!important}
+.selected-n3{border-color:#BA7517!important;background:#FAEEDA!important;color:#412402!important}
+.selected-n3 .opt-circle{border-color:#BA7517!important;background:#BA7517!important}
+
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;gap:12px}
+.btn{padding:10px 24px;border-radius:10px;font-size:15px;cursor:pointer;border:1px solid #e0e0e0;background:white;color:#1a1a1a;transition:all 0.15s;font-family:inherit}
+.btn:hover{background:#f5f5f5}
+.btn-n5{background:#185FA5!important;color:white!important;border-color:#185FA5!important}
+.btn-n5:hover{background:#0C447C!important}
+.btn-n4{background:#0F6E56!important;color:white!important;border-color:#0F6E56!important}
+.btn-n4:hover{background:#085041!important}
+.btn-n3{background:#854F0B!important;color:white!important;border-color:#854F0B!important}
+.btn-n3:hover{background:#633806!important}
+
+.timer{font-size:13px;color:#888;display:flex;align-items:center;gap:4px}
+.reading-text{background:#f8f8f8;border-radius:10px;padding:1rem;font-size:15px;line-height:2.2;margin-bottom:1rem;border:1px solid #eee}
+.section-intro{background:#f8f8f8;border-radius:14px;padding:1.25rem;margin-bottom:1.5rem}
+.section-intro h3{font-size:16px;font-weight:500;margin-bottom:6px}
+.section-intro p{font-size:14px;color:#777;line-height:1.6}
+
+.audio-box{background:#f8f8f8;border-radius:10px;padding:1rem;margin-bottom:1rem;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid #eee}
+.audio-btn{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:1px solid #e0e0e0;background:white;cursor:pointer;font-size:14px;transition:all 0.15s;font-family:inherit}
+.audio-btn:hover{background:#f5f5f5}
+.audio-btn:disabled{opacity:0.5;cursor:not-allowed}
+.audio-count{font-size:12px;color:#888}
+
+/* 結果 */
+.score-card{background:white;border-radius:16px;padding:2rem;text-align:center;margin-bottom:1rem;border:1px solid #eee}
+.score-big{font-size:48px;font-weight:500;margin:1rem 0}
+.score-big-n5{color:#185FA5}
+.score-big-n4{color:#0F6E56}
+.score-big-n3{color:#854F0B}
+.score-label{font-size:14px;color:#888}
+.section-scores{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1.5rem}
+.s-score{background:#f8f8f8;border-radius:10px;padding:12px;text-align:center}
+.s-score-num{font-size:20px;font-weight:500}
+.s-score-lbl{font-size:12px;color:#888;margin-top:2px}
+.result-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+.result-row:last-child{border-bottom:none}
+.tag-c{color:#27500A;background:#EAF3DE;padding:2px 8px;border-radius:10px;font-size:12px;white-space:nowrap}
+.tag-w{color:#501313;background:#FCEBEB;padding:2px 8px;border-radius:10px;font-size:12px;white-space:nowrap}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-cell{background:#f8f8f8;border-radius:10px;padding:12px;text-align:center}
+.info-num{font-size:20px;font-weight:500}
+.info-lbl{font-size:12px;color:#888;margin-top:2px}
+ruby{ruby-align:center}
+rt{font-size:10px;color:#999}
+.back-btn{background:none;border:none;color:#888;font-size:14px;cursor:pointer;padding:4px 8px;font-family:inherit;margin-bottom:1rem;display:inline-flex;align-items:center;gap:4px}
+.back-btn:hover{color:#333}
+</style>
+</head>
+<body>
+
+<!-- レベル選択画面 -->
+<div id="home-screen" class="screen active">
+  <div class="header">
+    <div style="font-size:13px;background:#e8e4dd;color:#555;display:inline-block;padding:4px 14px;border-radius:20px;margin-bottom:12px">JLPT</div>
+    <h1><ruby>日本語<rt>にほんご</rt></ruby><ruby>能力<rt>のうりょく</rt></ruby>テスト</h1>
+    <p>レベルをえらんでください</p>
+  </div>
+  <div class="level-cards">
+    <div class="level-card n5" onclick="selectLevel('n5')">
+      <div class="level-icon">N5</div>
+      <div class="level-info">
+        <h2>N5 <ruby>初級<rt>しょきゅう</rt></ruby></h2>
+        <p>20<ruby>問<rt>もん</rt></ruby>・30<ruby>分<rt>ふん</rt></ruby>・だい1かい</p>
+      </div>
+      <div class="level-arrow">›</div>
+    </div>
+    <div class="level-card n4" onclick="selectLevel('n4')">
+      <div class="level-icon">N4</div>
+      <div class="level-info">
+        <h2>N4 <ruby>初中級<rt>しょちゅうきゅう</rt></ruby></h2>
+        <p>20<ruby>問<rt>もん</rt></ruby>・35<ruby>分<rt>ふん</rt></ruby>・だい1かい</p>
+      </div>
+      <div class="level-arrow">›</div>
+    </div>
+    <div class="level-card n3" onclick="selectLevel('n3')">
+      <div class="level-icon">N3</div>
+      <div class="level-info">
+        <h2>N3 <ruby>中級<rt>ちゅうきゅう</rt></ruby></h2>
+        <p>20<ruby>問<rt>もん</rt></ruby>・40<ruby>分<rt>ふん</rt></ruby>・だい1かい</p>
+      </div>
+      <div class="level-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- テスト開始画面 -->
+<div id="start-screen" class="screen">
+  <div class="header">
+    <div id="start-pill" style="font-size:13px;display:inline-block;padding:4px 14px;border-radius:20px;margin-bottom:12px;font-weight:500"></div>
+    <h1><ruby>日本語<rt>にほんご</rt></ruby><ruby>能力<rt>のうりょく</rt></ruby>テスト</h1>
+    <p id="start-sub">だい1かい</p>
+  </div>
+  <div style="background:white;border-radius:16px;padding:1.25rem;margin-bottom:1rem;border:1px solid #eee">
+    <div class="info-grid" id="start-info"></div>
+    <div id="start-sections" style="margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:13px;color:#888;line-height:2.2"></div>
+  </div>
+  <button id="start-btn" class="btn" style="width:100%;margin-top:1rem" onclick="startTest()">テストを<ruby>始<rt>はじ</rt></ruby>める</button>
+</div>
+
+<!-- テスト画面 -->
+<div id="test-screen" class="screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span id="section-label" class="section-badge"></span>
+    <span class="timer">⏱ <span id="timer-display"></span></span>
+  </div>
+  <div class="progress-bar"><div id="progress-fill" style="width:0%;height:100%;border-radius:2px;transition:width 0.3s"></div></div>
+  <div id="question-area"></div>
+  <div class="nav-row">
+    <button class="btn" id="prev-btn" onclick="prevQ()" style="visibility:hidden">← <ruby>前<rt>まえ</rt></ruby>へ</button>
+    <span id="q-counter" style="font-size:13px;color:#888"></span>
+    <button class="btn" id="next-btn" onclick="nextQ()"><ruby>次<rt>つぎ</rt></ruby>へ →</button>
+  </div>
+</div>
+
+<!-- 結果画面 -->
+<div id="result-screen" class="screen">
+  <div class="header">
+    <h1>テスト<ruby>結果<rt>けっか</rt></ruby></h1>
+    <p id="result-sub"></p>
+  </div>
+  <div class="score-card">
+    <div class="score-label"><ruby>総合<rt>そうごう</rt></ruby>スコア</div>
+    <div class="score-big" id="total-score"></div>
+    <div class="score-label" id="score-msg"></div>
+    <div class="section-scores" id="section-scores"></div>
+  </div>
+  <div style="background:white;border-radius:16px;padding:1.25rem;margin-bottom:1rem;border:1px solid #eee">
+    <p style="font-size:14px;font-weight:500;margin-bottom:12px"><ruby>問題<rt>もんだい</rt></ruby>の<ruby>復習<rt>ふくしゅう</rt></ruby></p>
+    <div id="review-list"></div>
+  </div>
+  <button id="retry-btn" class="btn" style="width:100%;margin-bottom:10px" onclick="restartTest()">もう<ruby>一度<rt>いちど</rt></ruby></button>
+  <button class="btn" style="width:100%" onclick="goHome()">レベル<ruby>選択<rt>せんたく</rt></ruby>にもどる</button>
+</div>
+
+<script>
+const allData={
+  n5:{
+    timeLimit:30*60,
+    sections:[
+      {section:'文字・語彙',qs:[
+        {q:'「<ruby>山<rt>？</rt></ruby>」の<ruby>読<rt>よ</rt></ruby>み<ruby>方<rt>かた</rt></ruby>はどれですか？',opts:['やま','かわ','うみ','そら'],ans:0},
+        {q:'「<ruby>食<rt>た</rt></ruby>べます」の<ruby>意味<rt>いみ</rt></ruby>はどれですか？',opts:['ねます','たべます','のみます','あるきます'],ans:1},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>毎朝<rt>まいあさ</rt></ruby>、（　）を<ruby>飲<rt>の</rt></ruby>みます。',opts:['コーヒー','えいが','でんしゃ','ともだち'],ans:0},
+        {q:'「<ruby>高<rt>たか</rt></ruby>い」の<ruby>反対<rt>はんたい</rt></ruby>はどれですか？',opts:['<ruby>大<rt>おお</rt></ruby>きい','<ruby>低<rt>ひく</rt></ruby>い','<ruby>多<rt>おお</rt></ruby>い','<ruby>少<rt>すく</rt></ruby>ない'],ans:1},
+        {q:'「<ruby>月曜日<rt>げつようび</rt></ruby>」の<ruby>次<rt>つぎ</rt></ruby>の<ruby>日<rt>ひ</rt></ruby>は？',opts:['<ruby>日曜日<rt>にちようび</rt></ruby>','<ruby>火曜日<rt>かようび</rt></ruby>','<ruby>水曜日<rt>すいようび</rt></ruby>','<ruby>木曜日<rt>もくようび</rt></ruby>'],ans:1},
+      ]},
+      {section:'文法',qs:[
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nこれ（　）わたしのかばんです。',opts:['は','を','に','で'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nきのう、えいが（　）みました。',opts:['が','は','を','で'],ans:2},
+        {q:'<ruby>正<rt>ただ</rt></ruby>しい<ruby>文<rt>ぶん</rt></ruby>はどれですか？',opts:['わたしは<ruby>学生<rt>がくせい</rt></ruby>じゃありません','わたしが<ruby>学生<rt>がくせい</rt></ruby>ではありません','わたしは<ruby>学生<rt>がくせい</rt></ruby>ではないです','わたしは<ruby>学生<rt>がくせい</rt></ruby>じゃない'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>図書館<rt>としょかん</rt></ruby>（　）<ruby>本<rt>ほん</rt></ruby>を<ruby>読<rt>よ</rt></ruby>みます。',opts:['を','が','で','に'],ans:2},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>明日<rt>あした</rt></ruby>、<ruby>東京<rt>とうきょう</rt></ruby>（　）<ruby>行<rt>い</rt></ruby>きます。',opts:['で','を','が','に'],ans:3},
+      ]},
+      {section:'読解',qs:[
+        {reading:true,passage:'わたしは<ruby>毎日<rt>まいにち</rt></ruby>、<ruby>朝<rt>あさ</rt></ruby>6<ruby>時<rt>じ</rt></ruby>に<ruby>起<rt>お</rt></ruby>きます。シャワーをあびて、<ruby>朝<rt>あさ</rt></ruby>ごはんを<ruby>食<rt>た</rt></ruby>べます。それから、<ruby>会社<rt>かいしゃ</rt></ruby>に<ruby>行<rt>い</rt></ruby>きます。<ruby>会社<rt>かいしゃ</rt></ruby>は9<ruby>時<rt>じ</rt></ruby>から5<ruby>時<rt>じ</rt></ruby>までです。',
+         q:'この<ruby>人<rt>ひと</rt></ruby>は<ruby>何時<rt>なんじ</rt></ruby>に<ruby>起<rt>お</rt></ruby>きますか？',opts:['5<ruby>時<rt>じ</rt></ruby>','6<ruby>時<rt>じ</rt></ruby>','7<ruby>時<rt>じ</rt></ruby>','9<ruby>時<rt>じ</rt></ruby>'],ans:1},
+        {reading:true,passage:'わたしは<ruby>毎日<rt>まいにち</rt></ruby>、<ruby>朝<rt>あさ</rt></ruby>6<ruby>時<rt>じ</rt></ruby>に<ruby>起<rt>お</rt></ruby>きます。シャワーをあびて、<ruby>朝<rt>あさ</rt></ruby>ごはんを<ruby>食<rt>た</rt></ruby>べます。それから、<ruby>会社<rt>かいしゃ</rt></ruby>に<ruby>行<rt>い</rt></ruby>きます。<ruby>会社<rt>かいしゃ</rt></ruby>は9<ruby>時<rt>じ</rt></ruby>から5<ruby>時<rt>じ</rt></ruby>までです。',
+         q:'<ruby>会社<rt>かいしゃ</rt></ruby>は<ruby>何時<rt>なんじ</rt></ruby>から<ruby>何時<rt>なんじ</rt></ruby>までですか？',opts:['6<ruby>時<rt>じ</rt></ruby>から5<ruby>時<rt>じ</rt></ruby>','7<ruby>時<rt>じ</rt></ruby>から6<ruby>時<rt>じ</rt></ruby>','9<ruby>時<rt>じ</rt></ruby>から5<ruby>時<rt>じ</rt></ruby>','8<ruby>時<rt>じ</rt></ruby>から4<ruby>時<rt>じ</rt></ruby>'],ans:2},
+        {reading:true,passage:'たなかさんへ\nあした、いっしょにランチを<ruby>食<rt>た</rt></ruby>べませんか？12<ruby>時<rt>じ</rt></ruby>に<ruby>駅<rt>えき</rt></ruby>のまえで<ruby>会<rt>あ</rt></ruby>いましょう。\nすずき',
+         q:'どこで<ruby>会<rt>あ</rt></ruby>いますか？',opts:['<ruby>会社<rt>かいしゃ</rt></ruby>','<ruby>駅<rt>えき</rt></ruby>のまえ','レストラン','たなかさんのうち'],ans:1},
+        {reading:true,passage:'わたしのへやは<ruby>小<rt>ちい</rt></ruby>さいです。でも、きれいです。まどが<ruby>大<rt>おお</rt></ruby>きくて、ひるはあかるいです。',
+         q:'へやはどんなへやですか？',opts:['<ruby>大<rt>おお</rt></ruby>きくてきれいです','<ruby>小<rt>ちい</rt></ruby>さくてきたないです','<ruby>小<rt>ちい</rt></ruby>さくてきれいです','<ruby>大<rt>おお</rt></ruby>きくてくらいです'],ans:2},
+        {reading:true,passage:'ねこが3びき、いぬが2ひきいます。',
+         q:'どうぶつは<ruby>全部<rt>ぜんぶ</rt></ruby>でなんびきいますか？',opts:['2ひき','3びき','4ひき','5ひき'],ans:3},
+      ]},
+      {section:'聴解',qs:[
+        {listen:true,script:'A：すみません、トイレはどこですか？\nB：あそこです。エレベーターのよこです。',
+         q:'トイレはどこですか？',opts:['エレベーターのまえ','エレベーターのよこ','エレベーターのうしろ','エレベーターのうえ'],ans:1},
+        {listen:true,script:'A：なんじにおきましたか？\nB：しちじはんにおきました。',
+         q:'Bさんは<ruby>何時<rt>なんじ</rt></ruby>に<ruby>起<rt>お</rt></ruby>きましたか？',opts:['6<ruby>時<rt>じ</rt></ruby>','6<ruby>時<rt>じ</rt></ruby>はん','7<ruby>時<rt>じ</rt></ruby>','7<ruby>時<rt>じ</rt></ruby>はん'],ans:3},
+        {listen:true,script:'A：これはいくらですか？\nB：ひゃくえんです。',
+         q:'いくらですか？',opts:['10<ruby>円<rt>えん</rt></ruby>','100<ruby>円<rt>えん</rt></ruby>','1,000<ruby>円<rt>えん</rt></ruby>','10,000<ruby>円<rt>えん</rt></ruby>'],ans:1},
+        {listen:true,script:'A：きょうのてんきはどうですか？\nB：はれです。でも、さむいですよ。',
+         q:'きょうのてんきはどうですか？',opts:['あめ','くもり','はれ','ゆき'],ans:2},
+        {listen:true,script:'A：すきなたべものはなんですか？\nB：すしがすきです。それと、ラーメンもすきです。',
+         q:'Bさんがすきなたべものはどれですか？',opts:['すしとラーメン','すしとてんぷら','ラーメンとそば','てんぷらとそば'],ans:0},
+      ]},
+    ]
+  },
+  n4:{
+    timeLimit:35*60,
+    sections:[
+      {section:'文字・語彙',qs:[
+        {q:'「<ruby>図書館<rt>？</rt></ruby>」の<ruby>読<rt>よ</rt></ruby>み<ruby>方<rt>かた</rt></ruby>はどれですか？',opts:['としょかん','としょかく','ずしょかん','ずしょかく'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>彼女<rt>かのじょ</rt></ruby>はとても（　）です。みんなが<ruby>好<rt>す</rt></ruby>きです。',opts:['しんせつ','ふくざつ','にぎやか','しずか'],ans:0},
+        {q:'「<ruby>受<rt>う</rt></ruby>け<ruby>取<rt>と</rt></ruby>る」の<ruby>意味<rt>いみ</rt></ruby>はどれですか？',opts:['おくる','うけとる','かえす','かう'],ans:1},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nこの<ruby>荷物<rt>にもつ</rt></ruby>は（　）が10キロあります。',opts:['たかさ','おもさ','ながさ','ひろさ'],ans:1},
+        {q:'「<ruby>遅<rt>おそ</rt></ruby>い」の<ruby>反対<rt>はんたい</rt></ruby>はどれですか？',opts:['はやい','つよい','やさしい','かるい'],ans:0},
+      ]},
+      {section:'文法',qs:[
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>雨<rt>あめ</rt></ruby>が<ruby>降<rt>ふ</rt></ruby>っている（　）、<ruby>出<rt>で</rt></ruby>かけました。',opts:['のに','から','ので','けれど'],ans:3},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nもっと<ruby>早<rt>はや</rt></ruby>く<ruby>来<rt>く</rt></ruby>（　）よかったです。',opts:['たら','れば','なら','ば'],ans:1},
+        {q:'<ruby>正<rt>ただ</rt></ruby>しい<ruby>文<rt>ぶん</rt></ruby>はどれですか？',opts:['<ruby>先生<rt>せんせい</rt></ruby>に<ruby>聞<rt>き</rt></ruby>いてみます','<ruby>先生<rt>せんせい</rt></ruby>で<ruby>聞<rt>き</rt></ruby>いてみます','<ruby>先生<rt>せんせい</rt></ruby>を<ruby>聞<rt>き</rt></ruby>いてみます','<ruby>先生<rt>せんせい</rt></ruby>が<ruby>聞<rt>き</rt></ruby>いてみます'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nこの<ruby>映画<rt>えいが</rt></ruby>は<ruby>見<rt>み</rt></ruby>る（　）あります。',opts:['ことが','ものが','ためが','ほどが'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>子<rt>こ</rt></ruby>どものころ、よく<ruby>公園<rt>こうえん</rt></ruby>で（　）いました。',opts:['あそんで','あそびて','あそんに','あそびに'],ans:0},
+      ]},
+      {section:'読解',qs:[
+        {reading:true,passage:'<ruby>先週<rt>せんしゅう</rt></ruby>、<ruby>友達<rt>ともだち</rt></ruby>と<ruby>映画<rt>えいが</rt></ruby>を<ruby>見<rt>み</rt></ruby>に<ruby>行<rt>い</rt></ruby>きました。<ruby>映画<rt>えいが</rt></ruby>は3<ruby>時間<rt>じかん</rt></ruby>もありましたが、とても<ruby>面白<rt>おもしろ</rt></ruby>かったです。<ruby>映画<rt>えいが</rt></ruby>の<ruby>後<rt>あと</rt></ruby>、レストランで<ruby>夕食<rt>ゆうしょく</rt></ruby>を<ruby>食<rt>た</rt></ruby>べました。<ruby>友達<rt>ともだち</rt></ruby>はパスタを<ruby>注文<rt>ちゅうもん</rt></ruby>しましたが、わたしはカレーを<ruby>食<rt>た</rt></ruby>べました。',
+         q:'<ruby>映画<rt>えいが</rt></ruby>はどのくらいの<ruby>長<rt>なが</rt></ruby>さでしたか？',opts:['1<ruby>時間<rt>じかん</rt></ruby>','2<ruby>時間<rt>じかん</rt></ruby>','3<ruby>時間<rt>じかん</rt></ruby>','4<ruby>時間<rt>じかん</rt></ruby>'],ans:2},
+        {reading:true,passage:'<ruby>先週<rt>せんしゅう</rt></ruby>、<ruby>友達<rt>ともだち</rt></ruby>と<ruby>映画<rt>えいが</rt></ruby>を<ruby>見<rt>み</rt></ruby>に<ruby>行<rt>い</rt></ruby>きました。<ruby>映画<rt>えいが</rt></ruby>は3<ruby>時間<rt>じかん</rt></ruby>もありましたが、とても<ruby>面白<rt>おもしろ</rt></ruby>かったです。<ruby>映画<rt>えいが</rt></ruby>の<ruby>後<rt>あと</rt></ruby>、レストランで<ruby>夕食<rt>ゆうしょく</rt></ruby>を<ruby>食<rt>た</rt></ruby>べました。<ruby>友達<rt>ともだち</rt></ruby>はパスタを<ruby>注文<rt>ちゅうもん</rt></ruby>しましたが、わたしはカレーを<ruby>食<rt>た</rt></ruby>べました。',
+         q:'わたしは<ruby>夕食<rt>ゆうしょく</rt></ruby>に<ruby>何<rt>なに</rt></ruby>を<ruby>食<rt>た</rt></ruby>べましたか？',opts:['パスタ','カレー','すし','ラーメン'],ans:1},
+        {reading:true,passage:'【お<ruby>知<rt>し</rt></ruby>らせ】\nらいしゅうの<ruby>水曜日<rt>すいようび</rt></ruby>、<ruby>図書館<rt>としょかん</rt></ruby>は<ruby>休<rt>やす</rt></ruby>みです。<ruby>理由<rt>りゆう</rt></ruby>はせつびの<ruby>点検<rt>てんけん</rt></ruby>です。<ruby>木曜日<rt>もくようび</rt></ruby>からはふつうに<ruby>開<rt>あ</rt></ruby>きます。ごめいわくをおかけします。',
+         q:'<ruby>図書館<rt>としょかん</rt></ruby>はいつ<ruby>休<rt>やす</rt></ruby>みですか？',opts:['<ruby>今週<rt>こんしゅう</rt></ruby>の<ruby>水曜日<rt>すいようび</rt></ruby>','らいしゅうの<ruby>水曜日<rt>すいようび</rt></ruby>','らいしゅうの<ruby>木曜日<rt>もくようび</rt></ruby>','<ruby>今週<rt>こんしゅう</rt></ruby>の<ruby>木曜日<rt>もくようび</rt></ruby>'],ans:1},
+        {reading:true,passage:'【お<ruby>知<rt>し</rt></ruby>らせ】\nらいしゅうの<ruby>水曜日<rt>すいようび</rt></ruby>、<ruby>図書館<rt>としょかん</rt></ruby>は<ruby>休<rt>やす</rt></ruby>みです。<ruby>理由<rt>りゆう</rt></ruby>はせつびの<ruby>点検<rt>てんけん</rt></ruby>です。<ruby>木曜日<rt>もくようび</rt></ruby>からはふつうに<ruby>開<rt>あ</rt></ruby>きます。ごめいわくをおかけします。',
+         q:'<ruby>休<rt>やす</rt></ruby>みの<ruby>理由<rt>りゆう</rt></ruby>はなんですか？',opts:['そうじ','せつびの<ruby>点検<rt>てんけん</rt></ruby>','まつり','<ruby>工事<rt>こうじ</rt></ruby>'],ans:1},
+        {reading:true,passage:'やまださんは<ruby>毎朝<rt>まいあさ</rt></ruby>7<ruby>時<rt>じ</rt></ruby>に<ruby>起<rt>お</rt></ruby>きます。シャワーをあびてから、コーヒーを<ruby>飲<rt>の</rt></ruby>みます。それから<ruby>電車<rt>でんしゃ</rt></ruby>で<ruby>会社<rt>かいしゃ</rt></ruby>に<ruby>行<rt>い</rt></ruby>きます。<ruby>会社<rt>かいしゃ</rt></ruby>まで30<ruby>分<rt>ふん</rt></ruby>かかります。',
+         q:'やまださんの<ruby>会社<rt>かいしゃ</rt></ruby>まで<ruby>何分<rt>なんぷん</rt></ruby>かかりますか？',opts:['10<ruby>分<rt>ふん</rt></ruby>','20<ruby>分<rt>ふん</rt></ruby>','30<ruby>分<rt>ふん</rt></ruby>','40<ruby>分<rt>ふん</rt></ruby>'],ans:2},
+      ]},
+      {section:'聴解',qs:[
+        {listen:true,script:'A：もしもし、たなかさん、いまどこですか？\nB：すみません、でんしゃがおくれていて、あと15ふんくらいかかります。\nA：わかりました。きをつけてきてください。',
+         q:'Bさんはなぜおくれていますか？',opts:['<ruby>道<rt>みち</rt></ruby>がわからないから','<ruby>電車<rt>でんしゃ</rt></ruby>がおくれているから','<ruby>仕事<rt>しごと</rt></ruby>がおわらないから','<ruby>体<rt>からだ</rt></ruby>のぐあいがわるいから'],ans:1},
+        {listen:true,script:'A：このレストランのおすすめはなんですか？\nB：ラーメンとギョーザがにんきです。とくにラーメンはスープがおいしいですよ。\nA：じゃあ、ラーメンをください。',
+         q:'Aさんはなにをちゅうもんしましたか？',opts:['ギョーザ','ラーメン','カレー','スープ'],ans:1},
+        {listen:true,script:'A：あしたのかいぎはなんじからですか？\nB：ごごの2じからです。でも、じゅんびがあるので1じにきてください。\nA：わかりました。',
+         q:'かいぎはなんじからですか？',opts:['<ruby>午前<rt>ごぜん</rt></ruby>1<ruby>時<rt>じ</rt></ruby>','<ruby>午後<rt>ごご</rt></ruby>1<ruby>時<rt>じ</rt></ruby>','<ruby>午前<rt>ごぜん</rt></ruby>2<ruby>時<rt>じ</rt></ruby>','<ruby>午後<rt>ごご</rt></ruby>2<ruby>時<rt>じ</rt></ruby>'],ans:3},
+        {listen:true,script:'A：このかばん、どこでかいましたか？\nB：えきのちかくのデパートです。セールでやすくなっていたんです。\nA：いいですね。いくらでしたか？\nB：3000えんでした。',
+         q:'かばんはいくらでしたか？',opts:['300<ruby>円<rt>えん</rt></ruby>','1000<ruby>円<rt>えん</rt></ruby>','3000<ruby>円<rt>えん</rt></ruby>','5000<ruby>円<rt>えん</rt></ruby>'],ans:2},
+        {listen:true,script:'A：しゅうまつはなにをしましたか？\nB：どようびはかぞくとこうえんにいきました。にちようびはいえでほんをよんでいました。\nA：たのしそうですね。',
+         q:'Bさんはにちようびになにをしましたか？',opts:['こうえんにいった','かぞくとりょこうした','うちでほんをよんだ','ともだちとえいがをみた'],ans:2},
+      ]},
+    ]
+  },
+  n3:{
+    timeLimit:40*60,
+    sections:[
+      {section:'文字・語彙',qs:[
+        {q:'「<ruby>複雑<rt>？</rt></ruby>」の<ruby>読<rt>よ</rt></ruby>み<ruby>方<rt>かた</rt></ruby>はどれですか？',opts:['ふくさつ','ふくざつ','ふうさつ','ふうざつ'],ans:1},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nこの<ruby>計画<rt>けいかく</rt></ruby>を<ruby>実行<rt>じっこう</rt></ruby>するには、みんなの（　）が<ruby>必要<rt>ひつよう</rt></ruby>だ。',opts:['<ruby>協力<rt>きょうりょく</rt></ruby>','<ruby>命令<rt>めいれい</rt></ruby>','<ruby>反対<rt>はんたい</rt></ruby>','<ruby>批判<rt>ひはん</rt></ruby>'],ans:0},
+        {q:'「<ruby>諦<rt>あきら</rt></ruby>める」に<ruby>最<rt>もっと</rt></ruby>も<ruby>近<rt>ちか</rt></ruby>い<ruby>意味<rt>いみ</rt></ruby>はどれですか？',opts:['がんばる','やめる','はじめる','つづける'],ans:1},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nこの<ruby>問題<rt>もんだい</rt></ruby>は（　）に<ruby>考<rt>かんが</rt></ruby>える<ruby>必要<rt>ひつよう</rt></ruby>がある。',opts:['<ruby>慎重<rt>しんちょう</rt></ruby>','<ruby>急速<rt>きゅうそく</rt></ruby>','<ruby>表面<rt>ひょうめん</rt></ruby>','<ruby>感情<rt>かんじょう</rt></ruby>'],ans:0},
+        {q:'「<ruby>増加<rt>ぞうか</rt></ruby>」の<ruby>反対<rt>はんたい</rt></ruby>はどれですか？',opts:['<ruby>発展<rt>はってん</rt></ruby>','<ruby>回復<rt>かいふく</rt></ruby>','<ruby>減少<rt>げんしょう</rt></ruby>','<ruby>変化<rt>へんか</rt></ruby>'],ans:2},
+      ]},
+      {section:'文法',qs:[
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>試験<rt>しけん</rt></ruby>に<ruby>合格<rt>ごうかく</rt></ruby>する（　）、<ruby>毎日<rt>まいにち</rt></ruby><ruby>勉強<rt>べんきょう</rt></ruby>している。',opts:['ために','ことで','からに','ものの'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nこの<ruby>映画<rt>えいが</rt></ruby>は<ruby>見<rt>み</rt></ruby>れば<ruby>見<rt>み</rt></ruby>る（　）、おもしろくなる。',opts:['ほど','まで','だけ','ばかり'],ans:0},
+        {q:'<ruby>正<rt>ただ</rt></ruby>しい<ruby>文<rt>ぶん</rt></ruby>はどれですか？',opts:['<ruby>先生<rt>せんせい</rt></ruby>に<ruby>言<rt>い</rt></ruby>われたとおりにやりました','<ruby>先生<rt>せんせい</rt></ruby>が<ruby>言<rt>い</rt></ruby>われたとおりにやりました','<ruby>先生<rt>せんせい</rt></ruby>で<ruby>言<rt>い</rt></ruby>われたとおりにやりました','<ruby>先生<rt>せんせい</rt></ruby>を<ruby>言<rt>い</rt></ruby>われたとおりにやりました'],ans:0},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\n<ruby>彼<rt>かれ</rt></ruby>は<ruby>忙<rt>いそが</rt></ruby>しい（　）、<ruby>手伝<rt>てつだ</rt></ruby>ってくれた。',opts:['にしても','のに','ながら','だから'],ans:1},
+        {q:'（　）に<ruby>入<rt>はい</rt></ruby>る<ruby>言葉<rt>ことば</rt></ruby>はどれですか？\nあの<ruby>映画<rt>えいが</rt></ruby>は<ruby>何度<rt>なんど</rt></ruby>（　）<ruby>見<rt>み</rt></ruby>ても<ruby>飽<rt>あ</rt></ruby>きない。',opts:['でも','には','さえ','とも'],ans:0},
+      ]},
+      {section:'読解',qs:[
+        {reading:true,passage:'<ruby>現代<rt>げんだい</rt></ruby>の<ruby>若者<rt>わかもの</rt></ruby>はスマートフォンに<ruby>多<rt>おお</rt></ruby>くの<ruby>時間<rt>じかん</rt></ruby>を<ruby>使<rt>つか</rt></ruby>っている。<ruby>調査<rt>ちょうさ</rt></ruby>によると、1<ruby>日<rt>にち</rt></ruby>に<ruby>平均<rt>へいきん</rt></ruby>4<ruby>時間以上<rt>じかんいじょう</rt></ruby>スマートフォンを<ruby>使用<rt>しよう</rt></ruby>する<ruby>人<rt>ひと</rt></ruby>が<ruby>増<rt>ふ</rt></ruby>えているという。これは<ruby>睡眠<rt>すいみん</rt></ruby><ruby>不足<rt>ぶそく</rt></ruby>や<ruby>集中力<rt>しゅうちゅうりょく</rt></ruby>の<ruby>低下<rt>ていか</rt></ruby>につながることがあり、<ruby>専門家<rt>せんもんか</rt></ruby>は<ruby>使用<rt>しよう</rt></ruby><ruby>時間<rt>じかん</rt></ruby>を<ruby>意識的<rt>いしきてき</rt></ruby>に<ruby>管理<rt>かんり</rt></ruby>することを<ruby>勧<rt>すす</rt></ruby>めている。',
+         q:'<ruby>専門家<rt>せんもんか</rt></ruby>はなにを<ruby>勧<rt>すす</rt></ruby>めていますか？',opts:['スマートフォンをやめること','スマートフォンの<ruby>使用<rt>しよう</rt></ruby><ruby>時間<rt>じかん</rt></ruby>を<ruby>管理<rt>かんり</rt></ruby>すること','もっとよく<ruby>寝<rt>ね</rt></ruby>ること','スマートフォンを<ruby>新<rt>あたら</rt></ruby>しくすること'],ans:1},
+        {reading:true,passage:'<ruby>現代<rt>げんだい</rt></ruby>の<ruby>若者<rt>わかもの</rt></ruby>はスマートフォンに<ruby>多<rt>おお</rt></ruby>くの<ruby>時間<rt>じかん</rt></ruby>を<ruby>使<rt>つか</rt></ruby>っている。<ruby>調査<rt>ちょうさ</rt></ruby>によると、1<ruby>日<rt>にち</rt></ruby>に<ruby>平均<rt>へいきん</rt></ruby>4<ruby>時間以上<rt>じかんいじょう</rt></ruby>スマートフォンを<ruby>使用<rt>しよう</rt></ruby>する<ruby>人<rt>ひと</rt></ruby>が<ruby>増<rt>ふ</rt></ruby>えているという。これは<ruby>睡眠<rt>すいみん</rt></ruby><ruby>不足<rt>ぶそく</rt></ruby>や<ruby>集中力<rt>しゅうちゅうりょく</rt></ruby>の<ruby>低下<rt>ていか</rt></ruby>につながることがあり、<ruby>専門家<rt>せんもんか</rt></ruby>は<ruby>使用<rt>しよう</rt></ruby><ruby>時間<rt>じかん</rt></ruby>を<ruby>意識的<rt>いしきてき</rt></ruby>に<ruby>管理<rt>かんり</rt></ruby>することを<ruby>勧<rt>すす</rt></ruby>めている。',
+         q:'スマートフォンの<ruby>使<rt>つか</rt></ruby>いすぎはどんな<ruby>問題<rt>もんだい</rt></ruby>につながりますか？',opts:['<ruby>記憶力<rt>きおくりょく</rt></ruby>の<ruby>向上<rt>こうじょう</rt></ruby>','<ruby>視力<rt>しりょく</rt></ruby>の<ruby>回復<rt>かいふく</rt></ruby>','<ruby>睡眠<rt>すいみん</rt></ruby><ruby>不足<rt>ぶそく</rt></ruby>や<ruby>集中力<rt>しゅうちゅうりょく</rt></ruby>の<ruby>低下<rt>ていか</rt></ruby>','<ruby>体力<rt>たいりょく</rt></ruby>の<ruby>増加<rt>ぞうか</rt></ruby>'],ans:2},
+        {reading:true,passage:'<ruby>山田<rt>やまだ</rt></ruby>さんは<ruby>先月<rt>せんげつ</rt></ruby>、<ruby>会社<rt>かいしゃ</rt></ruby>を<ruby>辞<rt>や</rt></ruby>めて、<ruby>自分<rt>じぶん</rt></ruby>のカフェを<ruby>開<rt>ひら</rt></ruby>きました。<ruby>最初<rt>さいしょ</rt></ruby>は<ruby>不安<rt>ふあん</rt></ruby>でしたが、<ruby>地域<rt>ちいき</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>たちが<ruby>応援<rt>おうえん</rt></ruby>してくれて、<ruby>今<rt>いま</rt></ruby>は<ruby>毎日<rt>まいにち</rt></ruby>たくさんのお<ruby>客<rt>きゃく</rt></ruby>さんが<ruby>来<rt>き</rt></ruby>てくれています。<ruby>山田<rt>やまだ</rt></ruby>さんは「<ruby>夢<rt>ゆめ</rt></ruby>をあきらめなくてよかった」と<ruby>話<rt>はな</rt></ruby>しています。',
+         q:'<ruby>山田<rt>やまだ</rt></ruby>さんについてただしいものはどれですか？',opts:['まだ<ruby>会社<rt>かいしゃ</rt></ruby>で<ruby>働<rt>はたら</rt></ruby>いている','カフェは<ruby>失敗<rt>しっぱい</rt></ruby>した','カフェはにぎわっている','<ruby>地域<rt>ちいき</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>に<ruby>反対<rt>はんたい</rt></ruby>された'],ans:2},
+        {reading:true,passage:'<ruby>山田<rt>やまだ</rt></ruby>さんは<ruby>先月<rt>せんげつ</rt></ruby>、<ruby>会社<rt>かいしゃ</rt></ruby>を<ruby>辞<rt>や</rt></ruby>めて、<ruby>自分<rt>じぶん</rt></ruby>のカフェを<ruby>開<rt>ひら</rt></ruby>きました。<ruby>最初<rt>さいしょ</rt></ruby>は<ruby>不安<rt>ふあん</rt></ruby>でしたが、<ruby>地域<rt>ちいき</rt></ruby>の<ruby>人<rt>ひと</rt></ruby>たちが<ruby>応援<rt>おうえん</rt></ruby>してくれて、<ruby>今<rt>いま</rt></ruby>は<ruby>毎日<rt>まいにち</rt></ruby>たくさんのお<ruby>客<rt>きゃく</rt></ruby>さんが<ruby>来<rt>き</rt></ruby>てくれています。<ruby>山田<rt>やまだ</rt></ruby>さんは「<ruby>夢<rt>ゆめ</rt></ruby>をあきらめなくてよかった」と<ruby>話<rt>はな</rt></ruby>しています。',
+         q:'「<ruby>夢<rt>ゆめ</rt></ruby>をあきらめなくてよかった」とはどういう<ruby>意味<rt>いみ</rt></ruby>ですか？',opts:['<ruby>夢<rt>ゆめ</rt></ruby>は<ruby>大切<rt>たいせつ</rt></ruby>ではなかった','<ruby>夢<rt>ゆめ</rt></ruby>を<ruby>続<rt>つづ</rt></ruby>けてよかった','<ruby>夢<rt>ゆめ</rt></ruby>をやめてよかった','<ruby>夢<rt>ゆめ</rt></ruby>は<ruby>難<rt>むずか</rt></ruby>しすぎた'],ans:1},
+        {reading:true,passage:'<ruby>環境問題<rt>かんきょうもんだい</rt></ruby>は<ruby>今<rt>いま</rt></ruby>、<ruby>世界中<rt>せかいじゅう</rt></ruby>で<ruby>注目<rt>ちゅうもく</rt></ruby>されています。<ruby>特<rt>とく</rt></ruby>に<ruby>気候変動<rt>きこうへんどう</rt></ruby>は<ruby>深刻<rt>しんこく</rt></ruby>な<ruby>問題<rt>もんだい</rt></ruby>で、<ruby>各国<rt>かっこく</rt></ruby>が<ruby>対策<rt>たいさく</rt></ruby>を<ruby>進<rt>すす</rt></ruby>めています。<ruby>個人<rt>こじん</rt></ruby>レベルでも、<ruby>節電<rt>せつでん</rt></ruby>やリサイクルなど、<ruby>小<rt>ちい</rt></ruby>さなことからできることがあります。',
+         q:'この<ruby>文章<rt>ぶんしょう</rt></ruby>のテーマはなんですか？',opts:['<ruby>世界<rt>せかい</rt></ruby>の<ruby>経済<rt>けいざい</rt></ruby>','<ruby>環境問題<rt>かんきょうもんだい</rt></ruby>と<ruby>対策<rt>たいさく</rt></ruby>','<ruby>個人<rt>こじん</rt></ruby>の<ruby>生活習慣<rt>せいかつしゅうかん</rt></ruby>','<ruby>国際<rt>こくさい</rt></ruby>ニュース'],ans:1},
+      ]},
+      {section:'聴解',qs:[
+        {listen:true,script:'A：このプロジェクトのしめきりはいつですか？\nB：らいしゅうのきんようびですが、しりょうのじゅんびがまにあうかしんぱいです。\nA：ひつようならてつだいますよ。\nB：ありがとうございます。では、あしたいっしょにかくにんしてもらえますか？\nA：もちろんです。',
+         q:'Bさんはなぜ<ruby>心配<rt>しんぱい</rt></ruby>していますか？',opts:['<ruby>締<rt>し</rt></ruby>め<ruby>切<rt>き</rt></ruby>りが<ruby>分<rt>わ</rt></ruby>からないから','<ruby>資料<rt>しりょう</rt></ruby>の<ruby>準備<rt>じゅんび</rt></ruby>が<ruby>間<rt>ま</rt></ruby>に<ruby>合<rt>あ</rt></ruby>わないかもしれないから','Aさんが<ruby>手伝<rt>てつだ</rt></ruby>ってくれないから','プロジェクトが<ruby>難<rt>むずか</rt></ruby>しすぎるから'],ans:1},
+        {listen:true,script:'A：さいきん、あたらしいしゅみはありますか？\nB：はい、りょうりをはじめました。まいしゅうまつ、あたらしいレシピをためしています。\nA：いいですね。とくいなりょうりはありますか？\nB：いまのところ、パスタがいちばんじょうずくできます。',
+         q:'Bさんが<ruby>一番<rt>いちばん</rt></ruby><ruby>得意<rt>とくい</rt></ruby>な<ruby>料理<rt>りょうり</rt></ruby>はなんですか？',opts:['カレー','すし','パスタ','ラーメン'],ans:2},
+        {listen:true,script:'A：らいげつのりょこうのけいかくはできましたか？\nB：だいたいできました。きょうとに3はくして、おおさかに2はくするよていです。\nA：いいですね。いどうはどうやって？\nB：しんかんせんをつかうよていです。',
+         q:'この<ruby>人<rt>ひと</rt></ruby>は<ruby>京都<rt>きょうと</rt></ruby>に<ruby>何泊<rt>なんはく</rt></ruby>しますか？',opts:['1<ruby>泊<rt>はく</rt></ruby>','2<ruby>泊<rt>はく</rt></ruby>','3<ruby>泊<rt>はく</rt></ruby>','4<ruby>泊<rt>はく</rt></ruby>'],ans:2},
+        {listen:true,script:'A：やまださん、かいぎのしりょうはもうじゅんびできましたか？\nB：はんぶんくらいできています。すうじのぶぶんがまだです。\nA：なんじまでにおわりそうですか？\nB：ごごの3じまでにはできるとおもいます。',
+         q:'<ruby>資料<rt>しりょう</rt></ruby>はいつできそうですか？',opts:['<ruby>午前<rt>ごぜん</rt></ruby>中','<ruby>午後<rt>ごご</rt></ruby>1<ruby>時<rt>じ</rt></ruby>まで','<ruby>午後<rt>ごご</rt></ruby>3<ruby>時<rt>じ</rt></ruby>まで','<ruby>明日<rt>あした</rt></ruby>'],ans:2},
+        {listen:true,script:'A：このえいが、みた？\nB：うん、せんしゅうみた。さいしょはあまりきたいしていなかったけど、おもったよりおもしろかったよ。\nA：そう？どんなところがよかった？\nB：とくにさいごのシーンがかんどうてきだった。',
+         q:'Bさんのこの<ruby>映画<rt>えいが</rt></ruby>への<ruby>感想<rt>かんそう</rt></ruby>はどれですか？',opts:['<ruby>期待<rt>きたい</rt></ruby>していたよりつまらなかった','<ruby>期待<rt>きたい</rt></ruby>していたよりおもしろかった','<ruby>最初<rt>さいしょ</rt></ruby>からおもしろいとおもっていた','<ruby>最後<rt>さいご</rt></ruby>のシーンがわかりにくかった'],ans:1},
+      ]},
+    ]
+  }
+};
+
+const levelColors={
+  n5:{badge:'badge-n5',btn:'btn-n5',fill:'progress-fill-n5',score:'score-big-n5'},
+  n4:{badge:'badge-n4',btn:'btn-n4',fill:'progress-fill-n4',score:'score-big-n4'},
+  n3:{badge:'badge-n3',btn:'btn-n3',fill:'progress-fill-n3',score:'score-big-n3'},
+};
+const levelNames={n5:'N5',n4:'N4',n3:'N3'};
+const timeLimits={n5:30,n4:35,n3:40};
+
+let currentLevel=null,currentSection=0,currentQ=0,answers={},audioPlays={};
+let timerInterval,timeLeft=0;
+let synth=window.speechSynthesis,currentUtterance=null;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function selectLevel(lvl){
+  currentLevel=lvl;
+  const data=allData[lvl];
+  const c=levelColors[lvl];
+  const total=data.sections.reduce((a,s)=>a+s.qs.length,0);
+  const pill=document.getElementById('start-pill');
+  pill.textContent=levelNames[lvl];
+  pill.className='';
+  pill.style.cssText='font-size:13px;display:inline-block;padding:4px 14px;border-radius:20px;margin-bottom:12px;font-weight:500;';
+  if(lvl==='n5'){pill.style.background='#E6F1FB';pill.style.color='#185FA5';}
+  else if(lvl==='n4'){pill.style.background='#EAF3DE';pill.style.color='#0F6E56';}
+  else{pill.style.background='#FAEEDA';pill.style.color='#854F0B';}
+  document.getElementById('start-info').innerHTML=`
+    <div class="info-cell"><div class="info-num">4</div><div class="info-lbl">セクション</div></div>
+    <div class="info-cell"><div class="info-num">${total}</div><div class="info-lbl">問題数</div></div>
+    <div class="info-cell"><div class="info-num">${timeLimits[lvl]}分</div><div class="info-lbl">目安時間</div></div>
+    <div class="info-cell"><div class="info-num">${levelNames[lvl]}</div><div class="info-lbl">レベル</div></div>`;
+  document.getElementById('start-sections').innerHTML=
+    'セクション1：文字・語彙（5問）<br>セクション2：文法（5問）<br>セクション3：読解（5問）<br>セクション4：聴解（5問）🎧';
+  const btn=document.getElementById('start-btn');
+  btn.className='btn '+c.btn;
+  showScreen('start-screen');
+}
+
+function startTest(){
+  currentSection=0;currentQ=0;answers={};audioPlays={};
+  timeLeft=allData[currentLevel].timeLimit;
+  showScreen('test-screen');
+  startTimer();renderQ();
+}
+
+function startTimer(){
+  updateTimerDisplay();
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    updateTimerDisplay();
+    if(timeLeft<=0){clearInterval(timerInterval);showResults();}
+  },1000);
+}
+function updateTimerDisplay(){
+  let m=Math.floor(timeLeft/60),s=timeLeft%60;
+  document.getElementById('timer-display').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function getGlobalIdx(){
+  let idx=0;
+  const secs=allData[currentLevel].sections;
+  for(let si=0;si<currentSection;si++)idx+=secs[si].qs.length;
+  return idx+currentQ;
+}
+
+function renderQ(){
+  const secs=allData[currentLevel].sections;
+  const s=secs[currentSection],q=s.qs[currentQ],gIdx=getGlobalIdx();
+  const total=secs.reduce((a,x)=>a+x.qs.length,0);
+  const c=levelColors[currentLevel];
+
+  const badge=document.getElementById('section-label');
+  badge.textContent=s.section;
+  badge.className='section-badge '+c.badge;
+
+  const pf=document.getElementById('progress-fill');
+  pf.className=c.fill;
+  pf.style.width=(gIdx/total*100)+'%';
+  document.getElementById('q-counter').textContent=`${gIdx+1} / ${total}`;
+
+  let html='';
+  if(q.reading){
+    html+=`<div class="section-intro"><h3>読解問題</h3><p>つぎの文を読んで、質問に答えてください。</p></div>`;
+    html+=`<div class="reading-text">${q.passage.split('\n').join('<br>')}</div>`;
+    html+=`<div class="question-card"><div class="q-num">問題 ${gIdx+1}</div><div class="q-text">${q.q}</div>`;
+  } else if(q.listen){
+    const key=`${currentSection}-${currentQ}`,plays=audioPlays[key]||0,canPlay=plays<2;
+    html+=`<div class="section-intro"><h3>聴解問題 🎧</h3><p>音声を聞いて、正しい答えをえらんでください。</p></div>`;
+    html+=`<div class="audio-box">
+      <button class="audio-btn" onclick="playAudio('${key}')" id="play-btn-${key}" ${canPlay?'':'disabled'}>
+        ▶ ${plays===0?'音声を再生する':plays<2?'もう一度再生する':'再生終了'}
+      </button>
+      <span class="audio-count">再生回数：${plays}/2回</span>
+    </div>`;
+    html+=`<div class="question-card"><div class="q-num">問題 ${gIdx+1}</div><div class="q-text">${q.q}</div>`;
+  } else {
+    html+=`<div class="question-card"><div class="q-num">問題 ${gIdx+1}</div><div class="q-text">${q.q.split('\n').join('<br>')}</div>`;
+  }
+
+  const savedAns=answers[`${currentSection}-${currentQ}`];
+  const selClass=`selected-${currentLevel}`;
+  html+=`<div class="options">`;
+  q.opts.forEach((o,i)=>{
+    html+=`<div class="opt ${savedAns===i?selClass:''}" onclick="selectOpt(${i})"><div class="opt-circle"></div><span>${['①','②','③','④'][i]} ${o}</span></div>`;
+  });
+  html+=`</div></div>`;
+  document.getElementById('question-area').innerHTML=html;
+
+  document.getElementById('prev-btn').style.visibility=(gIdx===0)?'hidden':'visible';
+  const isLast=currentSection===secs.length-1&&currentQ===s.qs.length-1;
+  const nb=document.getElementById('next-btn');
+  nb.textContent=isLast?'テストを終わる ✓':'次へ →';
+  nb.className='btn '+c.btn;
+}
+
+function selectOpt(i){
+  answers[`${currentSection}-${currentQ}`]=i;
+  const selClass=`selected-${currentLevel}`;
+  document.querySelectorAll('.opt').forEach((el,idx)=>{
+    el.classList.toggle(selClass,idx===i);
+  });
+}
+
+function playAudio(key){
+  const [si,qi]=key.split('-').map(Number);
+  const q=allData[currentLevel].sections[si].qs[qi];
+  const plays=audioPlays[key]||0;
+  if(plays>=2)return;
+  if(currentUtterance)synth.cancel();
+  const u=new SpeechSynthesisUtterance(q.script);
+  u.lang='ja-JP';u.rate=0.85;u.pitch=1;
+  const v=synth.getVoices().filter(v=>v.lang.startsWith('ja'));
+  if(v.length>0)u.voice=v[0];
+  const btn=document.getElementById(`play-btn-${key}`);
+  if(btn){btn.innerHTML='⏸ 再生中...';btn.classList.add('playing');}
+  u.onend=()=>{
+    audioPlays[key]=(audioPlays[key]||0)+1;
+    const p2=audioPlays[key];
+    if(btn){
+      btn.innerHTML=p2<2?'▶ もう一度再生する':'▶ 再生終了';
+      btn.classList.remove('playing');
+      if(p2>=2)btn.disabled=true;
+    }
+    const c=btn&&btn.parentElement&&btn.parentElement.querySelector('.audio-count');
+    if(c)c.textContent=`再生回数：${p2}/2回`;
+    currentUtterance=null;
+  };
+  currentUtterance=u;synth.speak(u);
+}
+
+function nextQ(){
+  const secs=allData[currentLevel].sections;
+  const s=secs[currentSection];
+  if(currentQ<s.qs.length-1)currentQ++;
+  else if(currentSection<secs.length-1){currentSection++;currentQ=0;}
+  else{clearInterval(timerInterval);showResults();return;}
+  renderQ();
+}
+function prevQ(){
+  const secs=allData[currentLevel].sections;
+  if(currentQ>0)currentQ--;
+  else if(currentSection>0){currentSection--;currentQ=secs[currentSection].qs.length-1;}
+  renderQ();
+}
+
+function showResults(){
+  if(currentUtterance)synth.cancel();
+  const secs=allData[currentLevel].sections;
+  const total=secs.reduce((a,s)=>a+s.qs.length,0);
+  let correct=0,sScores=secs.map(()=>({c:0,t:0}));
+  secs.forEach((s,si)=>s.qs.forEach((q,qi)=>{
+    sScores[si].t++;
+    if(answers[`${si}-${qi}`]===q.ans){correct++;sScores[si].c++;}
+  }));
+  const pct=Math.round(correct/total*100);
+  const c=levelColors[currentLevel];
+  document.getElementById('result-sub').textContent=`${levelNames[currentLevel]} だい1かい`;
+  const ts=document.getElementById('total-score');
+  ts.textContent=`${correct} / ${total}`;
+  ts.className='score-big '+c.score;
+  document.getElementById('score-msg').textContent=pct>=80?'すばらしい！':pct>=60?'よくできました！':pct>=40?'がんばっています！':'もっとべんきょうしましょう！';
+  document.getElementById('section-scores').innerHTML=secs.map((s,si)=>
+    `<div class="s-score"><div class="s-score-num">${sScores[si].c}/${sScores[si].t}</div><div class="s-score-lbl">${s.section}</div></div>`
+  ).join('');
+  document.getElementById('review-list').innerHTML=secs.map((s,si)=>s.qs.map((q,qi)=>{
+    const gIdx=secs.slice(0,si).reduce((a,x)=>a+x.qs.length,0)+qi;
+    const ok=answers[`${si}-${qi}`]===q.ans;
+    const plain=(q.q||'').replace(/<[^>]+>/g,'').substring(0,28)+'…';
+    const ansText=q.opts[q.ans].replace(/<[^>]+>/g,'');
+    return `<div class="result-row"><span class="${ok?'tag-c':'tag-w'}">${ok?'○':'✗'}</span><span style="flex:1;font-size:13px">Q${gIdx+1}. ${plain}</span>${!ok?`<span style="font-size:12px;color:#999">→${ansText}</span>`:''}</div>`;
+  }).join('')).join('');
+  const rb=document.getElementById('retry-btn');
+  rb.className='btn '+c.btn;
+  showScreen('result-screen');
+}
+
+function restartTest(){
+  answers={};audioPlays={};currentSection=0;currentQ=0;
+  timeLeft=allData[currentLevel].timeLimit;
+  if(currentUtterance)synth.cancel();
+  showScreen('start-screen');
+}
+function goHome(){
+  clearInterval(timerInterval);
+  if(currentUtterance)synth.cancel();
+  showScreen('home-screen');
+}
+window.addEventListener('load',()=>{if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=()=>{};});
+</script>
+</body>
+</html>
